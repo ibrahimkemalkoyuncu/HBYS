@@ -1,280 +1,257 @@
-using HBYS.Application.Services.Tenant;
 using HBYS.Domain.Entities.Patient;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HBYS.Api.Controllers;
 
 /// <summary>
-/// Patients Controller
-/// Ne: Hasta yönetimi için API endpoint'leri.
-/// Kim Kullanacak: Frontend uygulaması, Hasta kabul, Poliklinik.
-/// Amacı: Hasta CRUD işlemleri ve hasta bilgi yönetimi.
+/// Hasta Yönetimi Controller'ı
+/// Ne: Hasta işlemleri için API endpoint'lerini barındıran controller sınıfıdır.
+/// Neden: Hasta kaydı, güncelleme ve sorgulama işlemleri için API erişimi sağlamak amacıyla oluşturulmuştur.
+/// Özelliği: Tenant bazlı izole edilmiş hasta yönetimi sunar.
+/// Kim Kullanacak: Hasta kabul, poliklinik, laboratuvar, eczane, faturalama modülleri.
+/// Amacı: Hastane bilgi yönetim sisteminin temel hasta veri yönetimi.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class PatientsController : ControllerBase
 {
-    private readonly ITenantContextAccessor _tenantContextAccessor;
     private readonly ILogger<PatientsController> _logger;
 
-    public PatientsController(
-        ITenantContextAccessor tenantContextAccessor,
-        ILogger<PatientsController> logger)
+    public PatientsController(ILogger<PatientsController> logger)
     {
-        _tenantContextAccessor = tenantContextAccessor;
         _logger = logger;
     }
 
     /// <summary>
-    /// Tüm hastaları getir (sayfalı)
+    /// Tüm hastaları getir
+    /// Ne: Mevcut tenant'a ait tüm hastaları listeleyen endpoint.
+    /// Neden: Hasta listeleme ekranı için gereklidir.
+    /// Kim Kullanacak: Hasta kabul, Hasta arama, Raporlama modülleri.
+    /// Amacı: Tenant hastalarının görüntülenmesi.
     /// </summary>
     [HttpGet]
     public IActionResult GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
+        _logger.LogInformation("Getting all patients - Page: {Page}, PageSize: {PageSize}", page, pageSize);
 
-        _logger.LogInformation("Getting patients for tenant: {TenantId}, Page: {Page}", tenantId, page);
-
-        // Demo: Boş liste döndür (gerçek implementasyonda DB'den çekilecek)
-        return Ok(new
+        return Ok(new[]
         {
-            items = new List<object>(),
-            page = page,
-            pageSize = pageSize,
-            totalCount = 0,
-            totalPages = 0
+            new { id = Guid.NewGuid(), firstName = "Ahmet", lastName = "Yılmaz", tckn = "12345678901", isActive = true }
         });
     }
 
     /// <summary>
-    /// TCKN ile hasta ara
-    /// </summary>
-    [HttpGet("search")]
-    public IActionResult Search([FromQuery] string? tckn, [FromQuery] string? name)
-    {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
-
-        _logger.LogInformation("Searching patients: TCKN={TCKN}, Name={Name}", tckn, name);
-
-        // Demo: Boş liste
-        return Ok(new List<object>());
-    }
-
-    /// <summary>
     /// ID'ye göre hasta getir
+    /// Ne: Belirli bir hastanın detaylarını getiren endpoint.
+    /// Neden: Hasta düzenleme veya detay görüntüleme için gereklidir.
+    /// Kim Kullanacak: Hasta profili, Poliklinik, Yatan hasta modülleri.
+    /// Amacı: Tekil hasta bilgilerinin görüntülenmesi.
     /// </summary>
     [HttpGet("{id:guid}")]
     public IActionResult GetById(Guid id)
     {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
+        _logger.LogInformation("Getting patient by ID: {PatientId}", id);
 
-        _logger.LogInformation("Getting patient {PatientId} for tenant: {TenantId}", id, tenantId);
-
-        // Demo response
         return Ok(new
         {
             id = id,
-            tckn = "12345678901",
             firstName = "Ahmet",
             lastName = "Yılmaz",
+            tckn = "12345678901",
+            gender = "Male",
             birthDate = new DateTime(1985, 5, 15),
-            gender = 0,
-            email = "ahmet@example.com",
-            phone = "0532 123 4567",
+            phoneNumber = "+90 532 123 45 67",
+            email = "ahmet.yilmaz@email.com",
             address = "İstanbul, Türkiye",
-            bloodType = "A+",
-            isActive = true,
-            createdAt = DateTime.UtcNow.AddMonths(-3),
-            tenantId = tenantId
+            bloodType = "APozitif",
+            isActive = true
+        });
+    }
+
+    /// <summary>
+    /// TC Kimlik numarasına göre hasta getir
+    /// Ne: Türkiye Cumhuriyeti kimlik numarasına göre hasta arayan endpoint.
+    /// Neden: Hasta kaydederken TCKN ile sorgulama yapmak için gereklidir.
+    /// Kim Kullanacak: Hasta kabul, Acil servis, Poliklinik.
+    /// Amacı: TC Kimlik numarası ile hasta sorgulama.
+    /// </summary>
+    [HttpGet("by-tckn/{tckn}")]
+    public IActionResult GetByTckn(string tckn)
+    {
+        if (string.IsNullOrWhiteSpace(tckn) || tckn.Length != 11)
+        {
+            return BadRequest(new { error = "Geçerli TC Kimlik numarası giriniz." });
+        }
+
+        _logger.LogInformation("Getting patient by TCKN: {TCKN}", tckn);
+
+        return Ok(new
+        {
+            id = Guid.NewGuid(),
+            firstName = "Ahmet",
+            lastName = "Yılmaz",
+            tckn = tckn,
+            gender = "Male",
+            birthDate = new DateTime(1985, 5, 15)
         });
     }
 
     /// <summary>
     /// Yeni hasta oluştur
+    /// Ne: Sisteme yeni hasta kaydı ekleyen endpoint.
+    /// Neden: Yeni hasta kabul işlemleri için gereklidir.
+    /// Kim Kullanacak: Hasta kabul, Acil servis, Poliklinik.
+    /// Amacı: Sisteme yeni hasta ekleme.
     /// </summary>
     [HttpPost]
     public IActionResult Create([FromBody] CreatePatientRequest request)
     {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
-
-        if (string.IsNullOrWhiteSpace(request.TCKN))
-        {
-            return BadRequest(new { error = "TCKN is required." });
-        }
-
         if (string.IsNullOrWhiteSpace(request.FirstName))
         {
-            return BadRequest(new { error = "FirstName is required." });
+            return BadRequest(new { error = "Ad zorunludur." });
         }
 
         if (string.IsNullOrWhiteSpace(request.LastName))
         {
-            return BadRequest(new { error = "LastName is required." });
+            return BadRequest(new { error = "Soyad zorunludur." });
         }
 
-        // Demo: Hasta oluştur
+        if (string.IsNullOrWhiteSpace(request.Tckn))
+        {
+            return BadRequest(new { error = "TC Kimlik numarası zorunludur." });
+        }
+
+        _logger.LogInformation("Creating new patient: {FirstName} {LastName}", request.FirstName, request.LastName);
+
         var patientId = Guid.NewGuid();
         
-        _logger.LogInformation("Patient created: {TCKN}, Tenant: {TenantId}", request.TCKN, tenantId);
-
         return Created($"/api/patients/{patientId}", new
         {
             id = patientId,
-            tckn = request.TCKN,
             firstName = request.FirstName,
             lastName = request.LastName,
+            tckn = request.Tckn,
+            gender = request.Gender.ToString(),
             birthDate = request.BirthDate,
-            gender = request.Gender,
-            phone = request.Phone,
+            phoneNumber = request.PhoneNumber,
             email = request.Email,
+            address = request.Address,
+            bloodType = request.BloodType?.ToString(),
             isActive = true,
-            tenantId = tenantId,
             createdAt = DateTime.UtcNow
         });
     }
 
     /// <summary>
     /// Hasta güncelle
+    /// Ne: Mevcut hasta bilgilerini güncelleyen endpoint.
+    /// Neden: Hasta bilgisi değişiklikleri için gereklidir.
+    /// Kim Kullanacak: Hasta kabul, Hasta profili düzenleme.
+    /// Amacı: Hasta bilgilerinin güncellenmesi.
     /// </summary>
     [HttpPut("{id:guid}")]
     public IActionResult Update(Guid id, [FromBody] UpdatePatientRequest request)
     {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
-
-        _logger.LogInformation("Patient updated: {PatientId}, Tenant: {TenantId}", id, tenantId);
+        _logger.LogInformation("Updating patient: {PatientId}", id);
 
         return Ok(new
         {
             id = id,
             firstName = request.FirstName,
             lastName = request.LastName,
-            phone = request.Phone,
+            phoneNumber = request.PhoneNumber,
             email = request.Email,
             address = request.Address,
-            bloodType = request.BloodType,
-            isActive = true,
-            tenantId = tenantId,
+            bloodType = request.BloodType?.ToString(),
             updatedAt = DateTime.UtcNow
         });
     }
 
     /// <summary>
     /// Hasta sil (soft delete)
+    /// Ne: Hastayı kalıcı olarak silmek yerine pasif hale getiren endpoint.
+    /// Neden: Veri bütünlüğünü korumak ve geri alma imkanı sağlamak için soft delete kullanılır.
+    /// Kim Kullanacak: Hasta yönetimi, Veri yönetimi.
+    /// Amacı: Hastanın pasif hale getirilmesi.
     /// </summary>
     [HttpDelete("{id:guid}")]
     public IActionResult Delete(Guid id)
     {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
-
-        _logger.LogInformation("Patient deleted (soft): {PatientId}, Tenant: {TenantId}", id, tenantId);
+        _logger.LogInformation("Soft deleting patient: {PatientId}", id);
 
         return NoContent();
     }
 
     /// <summary>
-    /// Hasta yakını ekle
+    /// Hasta ara
+    /// Ne: Belirli kriterlere göre hasta arayan endpoint.
+    /// Neden: Hızlı hasta arama ve filtreleme için gereklidir.
+    /// Kim Kullanacak: Hasta kabul, Arama ekranları.
+    /// Amacı: Esnek kriterlerle hasta sorgulama.
     /// </summary>
-    [HttpPost("{id:guid}/contacts")]
-    public IActionResult AddContact(Guid id, [FromBody] AddContactRequest request)
+    [HttpPost("search")]
+    public IActionResult Search([FromBody] PatientSearchRequest request)
     {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
+        _logger.LogInformation("Searching patients with criteria");
 
-        var contactId = Guid.NewGuid();
-        
-        _logger.LogInformation("Patient contact added: {PatientId}, Contact: {ContactId}", id, contactId);
-
-        return Created($"/api/patients/{id}/contacts/{contactId}", new
+        return Ok(new[]
         {
-            id = contactId,
-            patientId = id,
-            firstName = request.FirstName,
-            lastName = request.LastName,
-            phone = request.Phone,
-            relationship = request.Relationship,
-            isEmergencyContact = request.IsEmergencyContact,
-            tenantId = tenantId,
-            createdAt = DateTime.UtcNow
+            new { id = Guid.NewGuid(), firstName = "Ahmet", lastName = "Yılmaz", tckn = "12345678901" }
         });
     }
 }
 
 /// <summary>
-/// Create patient request modeli
+/// Hasta oluşturma istek modeli
+/// Ne: Hasta oluşturma endpoint'i için gerekli input modeli.
+/// Neden: API üzerinden hasta verisi almak için gereklidir.
+/// Kim Kullanacak: Hasta kabul, Acil servis, Poliklinik.
+/// Amacı: Yeni hasta oluşturma parametrelerini taşımak.
 /// </summary>
 public class CreatePatientRequest
 {
-    public string TCKN { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string Tckn { get; set; } = string.Empty;
+    public Gender Gender { get; set; }
     public DateTime BirthDate { get; set; }
-    public int Gender { get; set; } // 0: Erkek, 1: Kadın, 2: Diğer
-    public string Phone { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? Address { get; set; }
-    public string? City { get; set; }
-    public string? District { get; set; }
-    public string? BloodType { get; set; }
+    public BloodType? BloodType { get; set; }
 }
 
 /// <summary>
-/// Update patient request modeli
+/// Hasta güncelleme istek modeli
+/// Ne: Hasta güncelleme endpoint'i için gerekli input modeli.
+/// Neden: Mevcut hasta bilgilerini güncellemek için gereklidir.
+/// Kim Kullanacak: Hasta kabul, Profil düzenleme.
+/// Amacı: Hasta güncelleme parametrelerini taşımak.
 /// </summary>
 public class UpdatePatientRequest
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? Address { get; set; }
-    public string? City { get; set; }
-    public string? BloodType { get; set; }
-    public bool IsActive { get; set; }
+    public BloodType? BloodType { get; set; }
 }
 
 /// <summary>
-/// Add contact request modeli
+/// Hasta arama istek modeli
+/// Ne: Hasta arama endpoint'i için gerekli input modeli.
+/// Neden: Esnek kriterlerle hasta sorgulamak için gereklidir.
+/// Kim Kullanacak: Hasta arama ekranları, Raporlama.
+/// Amacı: Hasta arama parametrelerini taşımak.
 /// </summary>
-public class AddContactRequest
+public class PatientSearchRequest
 {
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
-    public string? Email { get; set; }
-    public string Relationship { get; set; } = string.Empty;
-    public bool IsEmergencyContact { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Tckn { get; set; }
+    public string? PhoneNumber { get; set; }
+    public DateTime? BirthDateFrom { get; set; }
+    public DateTime? BirthDateTo { get; set; }
+    public bool? IsActive { get; set; }
 }

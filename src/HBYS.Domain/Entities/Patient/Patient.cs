@@ -1,265 +1,295 @@
+using HBYS.Domain.Entities;
+
 namespace HBYS.Domain.Entities.Patient;
 
 /// <summary>
-/// Hasta entity sınıfı
-/// Ne: Hasta bilgilerini temsil eden domain entity sınıfıdır.
-/// Neden: Hasta kayıtları ve bilgileri için gereklidir.
-/// Özelliği: TC Kimlik No, ad, soyad, doğum tarihi, cinsiyet, adres, telefon vb. özelliklere sahiptir.
-/// Kim Kullanacak: PatientService, PatientRepository, AppointmentService.
-/// Amacı: Hasta verilerinin domain model olarak yönetilmesi.
+/// Hasta Entity Sınıfı
+/// Ne: HBYS sisteminin temel hasta varlık sınıfıdır.
+/// Neden: Hasta verilerinin kalıcı olarak saklanması ve yönetilmesi için gereklidir.
+/// Özelliği: TC Kimlik numarası ile tekil hasta takibi, çoklu adres desteği, kan grubu bilgisi.
+/// Kim Kullanacak: Hasta kabul, Poliklinik, Yatuvar, Eatan hasta, Laborczane, Faturalama modülleri.
+/// Amacı: Hastane bilgi yönetim sisteminin merkezi hasta veri deposu.
 /// </summary>
-public class Patient : BaseTenantEntity
+public class Patient : BaseEntity
 {
     /// <summary>
-    /// TC Kimlik Numarası (Uniqe)
-    /// </summary>
-    public string TCKN { get; private set; } = string.Empty;
-    
-    /// <summary>
-    /// Ad
-    /// </summary>
-    public string FirstName { get; private set; } = string.Empty;
-    
-    /// <summary>
-    /// Soyad
-    /// </summary>
-    public string LastName { get; private set; } = string.Empty;
-    
-    /// <summary>
-    /// Doğum Tarihi
-    /// </summary>
-    public DateTime BirthDate { get; private set; }
-    
-    /// <summary>
-    /// Cinsiyet (0: Erkek, 1: Kadın, 2: Diğer)
-    /// </summary>
-    public int Gender { get; private set; }
-    
-    /// <summary>
-    /// E-posta
-    /// </summary>
-    public string? Email { get; private set; }
-    
-    /// <summary>
-    /// Telefon
-    /// </summary>
-    public string Phone { get; private set; } = string.Empty;
-    
-    /// <summary>
-    /// Adres
-    /// </summary>
-    public string? Address { get; private set; }
-    
-    /// <summary>
-    /// Şehir
-    /// </summary>
-    public string? City { get; private set; }
-    
-    /// <summary>
-    /// İlçe
-    /// </summary>
-    public string? District { get; private set; }
-    
-    /// <summary>
-    /// Posta Kodu
-    /// </summary>
-    public string? PostalCode { get; private set; }
-    
-    /// <summary>
-    /// Kan Grubu
-    /// </summary>
-    public string? BloodType { get; private set; }
-    
-    /// <summary>
-    /// Rh Faktörü (Pozitif/Negatif)
-    /// </summary>
-    public string? RhFactor { get; private set; }
-    
-    /// <summary>
-    /// Alerjiler (JSON string olarak saklanabilir)
-    /// </summary>
-    public string? Allergies { get; private set; }
-    
-    /// <summary>
-    /// Kronik Hastalıklar
-    /// </summary>
-    public string? ChronicDiseases { get; private set; }
-    
-    /// <summary>
-    /// Aktif mi?
-    /// </summary>
-    public bool IsActive { get; private set; } = true;
-    
-    /// <summary>
-    /// Oluşturulma tarihi
-    /// </summary>
-    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
-    
-    /// <summary>
-    /// Güncellenme tarihi
-    /// </summary>
-    public DateTime? UpdatedAt { get; private set; }
-
-    private Patient() { }
+    /// Hasta adı
+    /// Ne: Hastanın adı.
+/// Neden: Hasta kimlik bilgisi olarak gereklidir.
+/// Kim Kullanacak: Tüm hasta işlemleri.
+/// Amacı: Hasta tanımlama.
+/// </summary>
+    public string FirstName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Factory method - Yeni hasta oluştur
-    /// </summary>
-    public static Patient Create(
-        string tckn,
-        string firstName,
-        string lastName,
-        DateTime birthDate,
-        int gender,
-        string phone,
-        Guid tenantId,
-        string? email = null,
-        string? address = null,
-        string? city = null)
-    {
-        if (string.IsNullOrWhiteSpace(tckn))
-            throw new ArgumentException("TCKN is required", nameof(tckn));
-            
-        if (string.IsNullOrWhiteSpace(firstName))
-            throw new ArgumentException("FirstName is required", nameof(firstName));
-            
-        if (string.IsNullOrWhiteSpace(lastName))
-            throw new ArgumentException("LastName is required", nameof(lastName));
-
-        return new Patient
-        {
-            TCKN = tckn,
-            FirstName = firstName,
-            LastName = lastName,
-            BirthDate = birthDate,
-            Gender = gender,
-            Phone = phone,
-            Email = email,
-            Address = address,
-            City = city,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-    }
+    /// Hasta soyadı
+    /// Ne: Hastanın soyadı.
+/// Neden: Hasta kimlik bilgisi olarak gereklidir.
+/// Kim Kullanacak: Tüm hasta işlemleri.
+/// Amacı: Hasta tanımlama.
+/// </summary>
+    public string LastName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Tam adı getir
-    /// </summary>
+    /// Tam adı (hesaplanan)
+    /// Ne: FirstName ve LastName birleştirilmiş tam ad.
+/// Neden: Görüntüleme ve raporlama kolaylığı için gereklidir.
+/// Kim Kullanacak: Raporlama, Görüntüleme.
+/// Amacı: Tam hasta adının tek alanda gösterilmesi.
+/// </summary>
     public string FullName => $"{FirstName} {LastName}";
 
     /// <summary>
-    /// Yaşı hesapla
-    /// </summary>
-    public int Age => DateTime.UtcNow.Year - BirthDate.Year - 
-        (DateTime.UtcNow.DayOfYear < BirthDate.DayOfYear ? 1 : 0);
+    /// TC Kimlik Numarası
+    /// Ne: Türkiye Cumhuriyeti Kimlik Numarası.
+/// Neden: Türkiye'de hasta tekil tanımlama için zorunludur.
+/// Kim Kullanacak: Hasta kabul, SGK entegrasyonu, Raporlama.
+/// Amacı: Ulusal kimlik numarası ile hasta takibi.
+/// </summary>
+    public string Tckn { get; set; } = string.Empty;
 
     /// <summary>
-    /// Bilgileri güncelle
-    /// </summary>
-    public void Update(
-        string firstName,
-        string lastName,
-        string phone,
-        string? email = null,
-        string? address = null,
-        string? city = null,
-        string? bloodType = null)
-    {
-        FirstName = firstName;
-        LastName = lastName;
-        Phone = phone;
-        Email = email;
-        Address = address;
-        City = city;
-        BloodType = bloodType;
-        UpdatedAt = DateTime.UtcNow;
-    }
+    /// Cinsiyet
+    /// Ne: Hastanın cinsiyeti.
+/// Neden: Tıbbi işlemler ve raporlama için gereklidir.
+/// Kim Kullanacak: Tıbbi modüller, Raporlama.
+/// Amacı: Cinsiyet bazlı işlem takibi.
+/// </summary>
+    public Gender Gender { get; set; }
 
     /// <summary>
-    /// Deaktive et (soft delete)
-    /// </summary>
-    public void Deactivate()
-    {
-        IsActive = false;
-        UpdatedAt = DateTime.UtcNow;
-    }
+    /// Doğum tarihi
+    /// Ne: Hastanın doğum tarihi.
+/// Neden: Yaş hesaplama, tıbbi öykü için gereklidir.
+/// Kim Kullanacak: Tüm modüller.
+/// Amacı: Yaş ve doğum bilgisi takibi.
+/// </summary>
+    public DateTime BirthDate { get; set; }
 
     /// <summary>
-    /// Aktive et
-    /// </summary>
-    public void Activate()
-    {
-        IsActive = true;
-        UpdatedAt = DateTime.UtcNow;
-    }
+    /// Telefon numarası
+    /// Ne: Hastanın iletişim telefonu.
+/// Neden: İletişim ve randevu hatırlatma için gereklidir.
+/// Kim Kullanacak: Randevu, İletişim.
+/// Amacı: Hasta ile iletişim.
+/// </summary>
+    public string? PhoneNumber { get; set; }
+
+    /// <summary>
+    /// E-posta adresi
+    /// Ne: Hastanın e-posta adresi.
+/// Neden: Dijital iletişim için gereklidir.
+/// Kim Kullanacak: Bildirim, Raporlama.
+/// Amacı: Elektronik iletişim.
+/// </summary>
+    public string? Email { get; set; }
+
+    /// <summary>
+    /// Adres
+    /// Ne: Hastanın ikamet adresi.
+/// Neden: İletişim ve fatura gönderimi için gereklidir.
+/// Kim Kullanacak: Faturalama, İletişim.
+/// Amacı: Fiziksel adres bilgisi.
+/// </summary>
+    public string? Address { get; set; }
+
+    /// <summary>
+    /// Kan grubu
+    /// Ne: Hastanın kan grubu.
+/// Neden: Acil müdahale ve kan bankası işlemleri için kritiktir.
+/// Kim Kullanacak: Acil servis, Yatan hasta, Ameliyathane.
+/// Amacı: Kan grubu bilgisi takibi.
+/// </summary>
+    public BloodType? BloodType { get; set; }
+
+    /// <summary>
+    /// Alerjiler
+    /// Ne: Hastanın bilinen alerjileri.
+/// Neden: İlaç ve tedavi güvenliği için gereklidir.
+/// Kim Kullanacak: Eczane, Reçete, Tedavi.
+/// Amacı: Alerji uyarı sistemi.
+/// </summary>
+    public string? Allergies { get; set; }
+
+    /// <summary>
+    /// Kronik hastalıklar
+    /// Ne: Hastanın kronik hastalıkları.
+/// Neden: Tedavi planlaması için gereklidir.
+/// Kim Kullanacak: Tedavi, Raporlama.
+/// Amacı: Kronik hastalık takibi.
+/// </summary>
+    public string? ChronicDiseases { get; set; }
+
+    /// <summary>
+    /// Baba adı
+    /// Ne: Hastanın babasının adı.
+/// Neden: Türkiye'de kimlik doğrulama için gereklidir.
+/// Kim Kullanacak: Hasta kabul, Kimlik doğrulama.
+/// Amacı: Kimlik bilgisi tamamlama.
+/// </summary>
+    public string? FatherName { get; set; }
+
+    /// <summary>
+    /// Anne adı
+    /// Ne: Hastanın annesinin adı.
+/// Neden: Türkiye'de kimlik doğrulama için gereklidir.
+/// Kim Kullanacak: Hasta kabul, Kimlik doğrulama.
+/// Amacı: Kimlik bilgisi tamamlama.
+/// </summary>
+    public string? MotherName { get; set; }
+
+    /// <summary>
+    /// Doğum yeri
+    /// Ne: Hastanın doğduğu il/ilçe.
+/// Neden: Kimlik bilgisi olarak gereklidir.
+/// Kim Kullanacak: Hasta kabul, Raporlama.
+/// Amacı: Doğum yeri bilgisi.
+/// </summary>
+    public string? BirthPlace { get; set; }
+
+    /// <summary>
+    /// Cilt adresi
+    /// Ne: Hastanın ikamet adresi ile aynı veya farklı cilt adresi.
+/// Neden: Fatura ve bildirim gönderimi için gereklidir.
+/// Kim Kullanacak: Faturalama, İletişim.
+/// Amacı: İkinci adres bilgisi.
+/// </summary>
+    public string? MailingAddress { get; set; }
+
+    /// <summary>
+    /// Uyruk
+    /// Ne: Hastanın uyruk bilgisi.
+/// Neden: Yabancı hasta takibi için gereklidir.
+/// Kim Kullanacak: Hasta kabul, Faturalama.
+/// Amacı: Uyruk bazlı işlem takibi.
+/// </summary>
+    public string? Nationality { get; set; }
+
+    /// <summary>
+    /// Pasaport numarası
+    /// Ne: Yabancı hastalar için pasaport numarası.
+/// Neden: Yabancı hasta kimlik doğrulama için gereklidir.
+/// Kim Kullanacak: Hasta kabul, Yabancı hasta işlemleri.
+/// Amacı: Pasaport bilgisi takibi.
+/// </summary>
+    public string? PassportNumber { get; set; }
+
+    /// <summary>
+    /// Sigorta türü
+    /// Ne: Hastanın sağlık sigortası türü.
+/// Neden: Faturalama ve SGK işlemleri için gereklidir.
+/// Kim Kullanacak: Faturalama, Hasta kabul.
+/// Amacı: Sigorta bilgisi takibi.
+/// </summary>
+    public InsuranceType? InsuranceType { get; set; }
+
+    /// <summary>
+    /// Sigorta numarası
+    /// Ne: Hastanın sigorta numarası.
+/// Neden: SGK ve özel sigorta doğrulama için gereklidir.
+/// Kim Kullanacak: Faturalama, SGK entegrasyonu.
+/// Amacı: Sigorta numarası takibi.
+/// </summary>
+    public string? InsuranceNumber { get; set; }
+
+    /// <summary>
+    /// Acil durum kişisi
+    /// Ne: Acil durumda ulaşılacak kişi.
+/// Neden: Acil durum iletişimi için gereklidir.
+/// Kim Kullanacak: Acil servis, Yatan hasta.
+/// Amacı: Acil durum bilgisi.
+/// </summary>
+    public string? EmergencyContactName { get; set; }
+
+    /// <summary>
+    /// Acil durum telefonu
+    /// Ne: Acil durum kişisinin telefonu.
+/// Neden: Acil durum iletişimi için gereklidir.
+/// Kim Kullanacak: Acil servis, Yatan hasta.
+/// Amacı: Acil durum iletişim bilgisi.
+/// </summary>
+    public string? EmergencyContactPhone { get; set; }
+
+    /// <summary>
+    /// Notlar
+    /// Ne: Hasta ile ilgili özel notlar.
+/// Neden: Ek bilgi ve hatırlatmalar için gereklidir.
+/// Kim Kullanacak: Tüm modüller.
+/// Amacı: Hasta ile ilgili notlar.
+/// </summary>
+    public string? Notes { get; set; }
 }
 
 /// <summary>
-/// Hasta yakını bilgileri
+/// Cinsiyet enum
+/// Ne: Cinsiyet türlerini tanımlayan enum.
+/// Neden: Hasta cinsiyet bilgisinin tip güvenli olarak yönetilmesi için gereklidir.
+/// Kim Kullanacak: Tüm hasta işlemleri.
+/// Amacı: Cinsiyet bilgisinin standartlaştırılması.
 /// </summary>
-public class PatientContact : BaseTenantEntity
+public enum Gender
 {
-    public Guid PatientId { get; private set; }
-    public string FirstName { get; private set; } = string.Empty;
-    public string LastName { get; private set; } = string.Empty;
-    public string Phone { get; private set; } = string.Empty;
-    public string? Email { get; private set; }
-    public string Relationship { get; private set; } = string.Empty; // Anne, Baba, Eş, vb.
-    public bool IsEmergencyContact { get; private set; }
-    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
-
-    private PatientContact() { }
-
-    public static PatientContact Create(
-        Guid patientId,
-        string firstName,
-        string lastName,
-        string phone,
-        string relationship,
-        bool isEmergencyContact,
-        Guid tenantId)
-    {
-        return new PatientContact
-        {
-            PatientId = patientId,
-            FirstName = firstName,
-            LastName = lastName,
-            Phone = phone,
-            Relationship = relationship,
-            IsEmergencyContact = isEmergencyContact,
-            TenantId = tenantId
-        };
-    }
+    /// <summary>
+    /// Erkek
+    /// </summary>
+    Male = 1,
+    /// <summary>
+    /// Kadın
+    /// </summary>
+    Female = 2,
+    /// <summary>
+    /// Belirtilmemiş
+    /// </summary>
+    Other = 3
 }
 
 /// <summary>
-/// Hasta sigorta bilgileri
+/// Kan grubu enum
+/// Ne: Kan grubu türlerini tanımlayan enum.
+/// Neden: Kan grubu bilgisinin tip güvenli olarak yönetilmesi için gereklidir.
+/// Kim Kullanacak: Acil servis, Kan bankası, Yatan hasta.
+/// Amacı: Kan grubu bilgisinin standartlaştırılması.
 /// </summary>
-public class PatientInsurance : BaseTenantEntity
+public enum BloodType
 {
-    public Guid PatientId { get; private set; }
-    public string InsuranceProvider { get; private set; } = string.Empty; // SGK, Özel Sigorta
-    public string PolicyNumber { get; private set; } = string.Empty;
-    public DateTime? ExpiryDate { get; private set; }
-    public bool IsActive { get; private set; } = true;
-    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+    APozitif = 1,
+    ANegatif = 2,
+    BPozitif = 3,
+    BNegatif = 4,
+    ABPozitif = 5,
+    ABNegatif = 6,
+    OPozitif = 7,
+    ONegatif = 8,
+    Bilinmiyor = 9
+}
 
-    private PatientInsurance() { }
-
-    public static PatientInsurance Create(
-        Guid patientId,
-        string insuranceProvider,
-        string policyNumber,
-        DateTime? expiryDate,
-        Guid tenantId)
-    {
-        return new PatientInsurance
-        {
-            PatientId = patientId,
-            InsuranceProvider = insuranceProvider,
-            PolicyNumber = policyNumber,
-            ExpiryDate = expiryDate,
-            TenantId = tenantId
-        };
-    }
+/// <summary>
+/// Sigorta türü enum
+/// Ne: Sigorta türlerini tanımlayan enum.
+/// Neden: Sigorta bilgisinin tip güvenli olarak yönetilmesi için gereklidir.
+/// Kim Kullanacak: Faturalama, Hasta kabul.
+/// Amacı: Sigorta türlerinin standartlaştırılması.
+/// </summary>
+public enum InsuranceType
+{
+    /// <summary>
+    /// Sosyal Güvenlik Kurumu
+    /// </summary>
+    SGK = 1,
+    /// <summary>
+    /// Emekli Sandığı
+    /// </summary>
+    EmekliSandigi = 2,
+    /// <summary>
+    /// Bağ-Kur
+    /// </summary>
+    BagKur = 3,
+    /// <summary>
+    /// Özel Sağlık Sigortası
+    /// </summary>
+    OzelSigorta = 4,
+    /// <summary>
+    /// Tam Ücret (Sigortasız)
+    /// </summary>
+    Ucretli = 5
 }

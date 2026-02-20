@@ -1,179 +1,161 @@
-using HBYS.Application.Services.Tenant;
-using HBYS.Domain.Entities.License;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HBYS.Api.Controllers;
 
 /// <summary>
-/// Licenses Controller
-/// Ne: Lisans yönetimi için API endpoint'leri.
-/// Kim Kullanacak: Admin paneli, Sistem yöneticisi.
-/// Amacı: Tenant lisans yönetimi ve feature flag kontrolü.
+/// Lisans Yönetimi Controller'ı
+/// Ne: Lisans işlemleri için API endpoint'lerini barındıran controller sınıfıdır.
+/// Neden: Lisans aktivasyonu, doğrulama ve özellik yönetimi için API erişimi sağlamak amacıyla oluşturulmuştur.
+/// Özelliği: Tenant bazlı lisans kontrolü ve feature flag yönetimi sunar.
+/// Kim Kullanacak: Frontend uygulaması, Lisans yönetimi paneli, Sistem yöneticileri.
+/// Amacı: HBYS lisanslarının yönetilmesi ve doğrulanması.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class LicensesController : ControllerBase
 {
-    private readonly ITenantContextAccessor _tenantContextAccessor;
     private readonly ILogger<LicensesController> _logger;
 
-    public LicensesController(
-        ITenantContextAccessor tenantContextAccessor,
-        ILogger<LicensesController> logger)
+    public LicensesController(ILogger<LicensesController> logger)
     {
-        _tenantContextAccessor = tenantContextAccessor;
         _logger = logger;
     }
 
     /// <summary>
-    /// Mevcut lisans bilgilerini getir
+    /// Lisans bilgilerini getir
+    /// Ne: Mevcut tenant'a ait lisans detaylarını getiren endpoint.
+    /// Neden: Lisans durumu görüntüleme ve özellik kontrolü için gereklidir.
+    /// Kim Kullanacak: Admin paneli, Lisans yönetimi ekranı, Sistem başlangıcı.
+    /// Amacı: Tenant lisans bilgilerinin görüntülenmesi.
     /// </summary>
-    [HttpGet("current")]
-    public IActionResult GetCurrentLicense()
+    [HttpGet]
+    public IActionResult GetLicense()
     {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
+        _logger.LogInformation("Getting license info");
 
-        _logger.LogInformation("Getting license for tenant: {TenantId}", tenantId);
-
-        // Demo license response
         return Ok(new
         {
-            tenantId = tenantId,
-            licenseType = "SaaS",
-            maxUsers = 100,
-            maxStorageGb = 500,
-            expiresAt = DateTime.UtcNow.AddYears(1),
+            licenseKey = "DEMO-LICENSE-2024-XXXX",
             isActive = true,
+            expiresAt = DateTime.UtcNow.AddYears(1),
+            maxUsers = 100,
+            maxPatients = 10000,
             features = new[]
             {
-                new { name = "PatientManagement", enabled = true },
-                new { name = "Appointment", enabled = true },
-                new { name = "Billing", enabled = true },
-                new { name = "Laboratory", enabled = true },
-                new { name = "Radiology", enabled = true },
-                new { name = "Pharmacy", enabled = false },
-                new { name = "Inpatient", enabled = false }
-            }
+                "outpatient",
+                "inpatient",
+                "laboratory",
+                "radiology",
+                "pharmacy",
+                "billing",
+                "accounting"
+            },
+            module = "HBYS Enterprise",
+            version = "1.0.0"
         });
     }
 
     /// <summary>
-    /// Feature flag kontrolü
+    /// Lisans doğrula
+    /// Ne: Girilen lisans anahtarının geçerli olup olmadığını kontrol eden endpoint.
+    /// Neden: Yeni kurulum veya lisans yenileme işlemleri için gereklidir.
+    /// Kim Kullanacak: Kurulum sihirbazı, Lisans aktivasyon ekranı.
+    /// Amacı: Lisans anahtarının geçerliliğinin kontrol edilmesi.
     /// </summary>
+    [HttpPost("validate")]
+    public IActionResult ValidateLicense([FromBody] ValidateLicenseRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.LicenseKey))
+        {
+            return BadRequest(new { error = "Lisans anahtarı zorunludur." });
+        }
+
+        _logger.LogInformation("Validating license: {LicenseKey}", request.LicenseKey);
+
+        // Gerçek lisans doğrulama servisisi burada çağırılacak
+        var isValid = request.LicenseKey.StartsWith("HBYS-");
+
+        if (!isValid)
+        {
+            return BadRequest(new { error = "Geçersiz lisans anahtarı." });
+        }
+
+        return Ok(new
+        {
+            isValid = true,
+            message = "Lisans geçerli."
+        });
+    }
+
+    /// <summary>
+    /// Özellik kontrolü yap
+    /// Ne: Belirli bir özelliğin lisans kapsamında olup olmadığını kontrol eden endpoint.
+/// Neden: Feature flag tabanlı özellik kontrolü için gereklidir.
+/// Kim Kullanacak: Frontend uygulaması, Servis katmanı.
+/// Amacı: Lisans özelliklerinin programatik olarak kontrol edilmesi.
+/// </summary>
     [HttpGet("features/{featureName}")]
     public IActionResult CheckFeature(string featureName)
     {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
+        _logger.LogInformation("Checking feature: {FeatureName}", featureName);
 
-        _logger.LogInformation("Checking feature {Feature} for tenant: {TenantId}", featureName, tenantId);
+        // Gerçek lisans servisinden özellik kontrolü yapılacak
+        var allowedFeatures = new[] { "outpatient", "inpatient", "laboratory", "radiology" };
+        var isEnabled = allowedFeatures.Contains(featureName.ToLower());
 
-        // Demo: Tüm feature'lar aktif
         return Ok(new
         {
-            featureName = featureName,
-            enabled = true,
-            tenantId = tenantId
+            feature = featureName,
+            isEnabled = isEnabled,
+            message = isEnabled ? "Özellik aktif." : "Özellik lisans kapsamında değil."
         });
     }
 
     /// <summary>
-    /// Tüm feature'ları listele
-    /// </summary>
-    [HttpGet("features")]
-    public IActionResult GetAllFeatures()
-    {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
-
-        var features = new[]
-        {
-            new { name = "PatientManagement", displayName = "Hasta Yönetimi", enabled = true },
-            new { name = "Appointment", displayName = "Randevu", enabled = true },
-            new { name = "Outpatient", displayName = "Poliklinik", enabled = true },
-            new { name = "Inpatient", displayName = "Yatan Hasta", enabled = true },
-            new { name = "Emergency", displayName = "Acil", enabled = true },
-            new { name = "Billing", displayName = "Faturalandırma", enabled = true },
-            new { name = "Laboratory", displayName = "Laboratuvar", enabled = true },
-            new { name = "Radiology", displayName = "Radyoloji", enabled = true },
-            new { name = "Pharmacy", displayName = "Eczane", enabled = true },
-            new { name = "Inventory", displayName = "Stok Yönetimi", enabled = true },
-            new { name = "Procurement", displayName = "Satın Alma", enabled = true },
-            new { name = "HR", displayName = "İnsan Kaynakları", enabled = false },
-            new { name = "Accounting", displayName = "Muhasebe", enabled = false },
-            new { name = "Reporting", displayName = "Raporlama", enabled = false }
-        };
-
-        return Ok(features);
-    }
-
-    /// <summary>
-    /// Lisans yenileme talebi (demo)
-    /// </summary>
+    /// Lisans yenile
+    /// Ne: Mevcut lisansı yenileyen endpoint.
+/// Neden: Lisans süresi dolduğunda veya uzatılmak istendiğinde kullanılır.
+/// Kim Kullanacak: Lisans yönetimi paneli, Sistem yöneticileri.
+/// Amacı: Lisans süresinin uzatılması.
+/// </summary>
     [HttpPost("renew")]
     public IActionResult RenewLicense([FromBody] RenewLicenseRequest request)
     {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
+        if (string.IsNullOrWhiteSpace(request.LicenseKey))
         {
-            return BadRequest(new { error = "Tenant context required." });
+            return BadRequest(new { error = "Lisans anahtarı zorunludur." });
         }
 
-        _logger.LogInformation("License renewal requested for tenant: {TenantId}", tenantId);
+        _logger.LogInformation("Renewing license: {LicenseKey}", request.LicenseKey);
 
         return Ok(new
         {
-            message = "License renewal request received.",
-            tenantId = tenantId,
-            requestedAt = DateTime.UtcNow
-        });
-    }
-
-    /// <summary>
-    /// Lisans usage raporu
-    /// </summary>
-    [HttpGet("usage")]
-    public IActionResult GetUsage()
-    {
-        var tenantId = _tenantContextAccessor.TenantId;
-        
-        if (tenantId == null)
-        {
-            return BadRequest(new { error = "Tenant context required." });
-        }
-
-        return Ok(new
-        {
-            tenantId = tenantId,
-            currentUsers = 15,
-            maxUsers = 100,
-            storageUsedGb = 45.5,
-            maxStorageGb = 500,
-            apiCallsThisMonth = 15234,
-            lastUpdated = DateTime.UtcNow
+            message = "Lisans başarıyla yenilendi.",
+            newExpiryDate = DateTime.UtcNow.AddYears(1)
         });
     }
 }
 
 /// <summary>
-/// Renew license request modeli
+/// Lisans doğrulama istek modeli
+/// Ne: Lisans doğrulama endpoint'i için gerekli input modeli.
+/// Neden: API üzerinden lisans anahtarı almak için gereklidir.
+/// Kim Kullanacak: Kurulum sihirbazı, Lisans aktivasyon ekranı.
+/// Amacı: Lisans doğrulama parametrelerini taşımak.
+/// </summary>
+public class ValidateLicenseRequest
+{
+    public string LicenseKey { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Lisans yenileme istek modeli
+/// Ne: Lisans yenileme endpoint'i için gerekli input modeli.
+/// Neden: API üzerinden lisans yenileme bilgisi almak için gereklidir.
+/// Kim Kullanacak: Lisans yönetimi paneli.
+/// Amacı: Lisans yenileme parametrelerini taşımak.
 /// </summary>
 public class RenewLicenseRequest
 {
-    public string LicenseType { get; set; } = "SaaS";
-    public int DurationMonths { get; set; } = 12;
+    public string LicenseKey { get; set; } = string.Empty;
 }

@@ -1,14 +1,15 @@
 using HBYS.Application.Services.Tenant;
-using HBYS.Domain.Entities.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HBYS.Api.Controllers;
 
 /// <summary>
-/// Users Controller
-/// Ne: Kullanıcı yönetimi için API endpoint'leri.
-/// Kim Kullanacak: Frontend uygulaması, Admin paneli.
-/// Amacı: Kullanıcı CRUD işlemleri.
+/// Kullanıcı Yönetimi Controller'ı
+/// Ne: Kullanıcı işlemleri için API endpoint'lerini barındıran controller sınıfıdır.
+/// Neden: Kullanıcı CRUD (Create, Read, Update, Delete) operasyonları için API erişimi sağlamak amacıyla oluşturulmuştur.
+/// Özelliği: Tenant bazlı izole edilmiş kullanıcı yönetimi sunar.
+/// Kim Kullanacak: Frontend uygulaması, Admin paneli, Mobil uygulamalar.
+/// Amacı: Sisteme giriş yapacak kullanıcıların yönetilmesi.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -26,7 +27,11 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Tüm kullanıcıları getir (mevcut tenant için)
+    /// Tüm kullanıcıları getir
+    /// Ne: Mevcut tenant'a ait tüm kullanıcıları listeleyen endpoint.
+    /// Neden: Kullanıcı listeleme ekranı için gereklidir.
+    /// Kim Kullanacak: Admin paneli, Kullanıcı yönetimi ekranı.
+    /// Amacı: Tenant kullanıcılarının görüntülenmesi.
     /// </summary>
     [HttpGet]
     public IActionResult GetAll()
@@ -39,13 +44,15 @@ public class UsersController : ControllerBase
         }
 
         _logger.LogInformation("Getting all users for tenant: {TenantId}", tenantId);
-
-        // Demo: Boş liste döndür (gerçek implementasyonda DB'den çekilecek)
         return Ok(new List<object>());
     }
 
     /// <summary>
     /// ID'ye göre kullanıcı getir
+    /// Ne: Belirli bir kullanıcının detaylarını getiren endpoint.
+    /// Neden: Kullanıcı düzenleme veya profil görüntüleme için gereklidir.
+    /// Kim Kullanacak: Kullanıcı profili, Admin detay ekranı.
+    /// Amacı: Tekil kullanıcı bilgilerinin görüntülenmesi.
     /// </summary>
     [HttpGet("{id:guid}")]
     public IActionResult GetById(Guid id)
@@ -59,7 +66,6 @@ public class UsersController : ControllerBase
 
         _logger.LogInformation("Getting user {UserId} for tenant: {TenantId}", id, tenantId);
 
-        // Demo response
         return Ok(new 
         {
             id = id,
@@ -72,6 +78,10 @@ public class UsersController : ControllerBase
 
     /// <summary>
     /// Yeni kullanıcı oluştur
+    /// Ne: Sisteme yeni kullanıcı ekleyen endpoint.
+    /// Neden: Yeni personel veya kullanıcı kaydı için gereklidir.
+    /// Kim Kullanacak: Admin paneli, İK yönetimi.
+    /// Amacı: Sisteme yeni kullanıcı ekleme.
     /// </summary>
     [HttpPost]
     public IActionResult Create([FromBody] CreateUserRequest request)
@@ -93,7 +103,6 @@ public class UsersController : ControllerBase
             return BadRequest(new { error = "Email is required." });
         }
 
-        // Demo: Kullanıcı oluştur (gerçek implementasyonda DB'ye kaydedilecek)
         var userId = Guid.NewGuid();
         
         _logger.LogInformation("User created: {UserName}, Tenant: {TenantId}", request.UserName, tenantId);
@@ -111,6 +120,10 @@ public class UsersController : ControllerBase
 
     /// <summary>
     /// Kullanıcı güncelle
+    /// Ne: Mevcut kullanıcı bilgilerini güncelleyen endpoint.
+    /// Neden: Kullanıcı bilgisi değişiklikleri için gereklidir.
+    /// Kim Kullanacak: Admin paneli, Profil düzenleme.
+    /// Amacı: Kullanıcı bilgilerinin güncellenmesi.
     /// </summary>
     [HttpPut("{id:guid}")]
     public IActionResult Update(Guid id, [FromBody] UpdateUserRequest request)
@@ -137,6 +150,10 @@ public class UsersController : ControllerBase
 
     /// <summary>
     /// Kullanıcı sil (soft delete)
+    /// Ne: Kullanıcıyı kalıcı olarak silmek yerine pasif hale getiren endpoint.
+    /// Neden: Veri bütünlüğünü korumak ve geri alma imkanı sağlamak için soft delete kullanılır.
+    /// Kim Kullanacak: Admin paneli, Kullanıcı yönetimi.
+    /// Amacı: Kullanıcının pasif hale getirilmesi.
     /// </summary>
     [HttpDelete("{id:guid}")]
     public IActionResult Delete(Guid id)
@@ -155,7 +172,11 @@ public class UsersController : ControllerBase
 }
 
 /// <summary>
-/// Create user request modeli
+/// Kullanıcı oluşturma istek modeli
+/// Ne: Kullanıcı oluşturma endpoint'i için gerekli input modeli.
+/// Neden: API üzerinden kullanıcı verisi almak için gereklidir.
+/// Kim Kullanacak: Frontend uygulaması, API consumer'lar.
+/// Amacı: Yeni kullanıcı oluşturma parametrelerini taşımak.
 /// </summary>
 public class CreateUserRequest
 {
@@ -166,7 +187,11 @@ public class CreateUserRequest
 }
 
 /// <summary>
-/// Update user request modeli
+/// Kullanıcı güncelleme istek modeli
+/// Ne: Kullanıcı güncelleme endpoint'i için gerekli input modeli.
+/// Neden: Mevcut kullanıcı bilgilerini güncellemek için gereklidir.
+/// Kim Kullanacak: Frontend uygulaması, API consumer'lar.
+/// Amacı: Kullanıcı güncelleme parametrelerini taşımak.
 /// </summary>
 public class UpdateUserRequest
 {
