@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HBYS.Api/HBYS.Api.csproj" />
+    <Project Path="src/HBYS.Application/HBYS.Application.csproj" />
+    <Project Path="src/HBYS.Domain/HBYS.Domain.csproj" />
+    <Project Path="src/HBYS.Infrastructure/HBYS.Infrastructure.csproj" />
+    <Project Path="src/HBYS.Persistence/HBYS.Persistence.csproj" />
+  </Folder>
+</Solution>
