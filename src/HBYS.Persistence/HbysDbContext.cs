@@ -12,6 +12,8 @@ using HBYS.Domain.Entities.Inventory;
 using HBYS.Domain.Entities.Procurement;
 using HBYS.Domain.Entities.Laboratory;
 using HBYS.Domain.Entities.Radiology;
+using HBYS.Domain.Entities.Accounting;
+using HBYS.Domain.Entities.Reporting;
 using Microsoft.EntityFrameworkCore;
 
 namespace HBYS.Persistence;
@@ -105,6 +107,13 @@ public class HbysDbContext : DbContext
     // Radiology Module
     public DbSet<RadiologyRequest> RadiologyRequests => Set<RadiologyRequest>();
     public DbSet<RadiologyTest> RadiologyTests => Set<RadiologyTest>();
+
+    // Accounting Module
+    public DbSet<AccountingTransaction> AccountingTransactions => Set<AccountingTransaction>();
+
+    // Reporting Module
+    public DbSet<ReportDefinition> ReportDefinitions => Set<ReportDefinition>();
+    public DbSet<ReportOutput> ReportOutputs => Set<ReportOutput>();
 
     /// <summary>
     /// Constructor
