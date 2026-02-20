@@ -51,9 +51,9 @@ public class Program
                 });
             });
             
-            // DbContext - SQL Server
+            // DbContext - SQLite
             builder.Services.AddDbContext<HbysDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // MediatR
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
