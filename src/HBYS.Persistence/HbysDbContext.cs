@@ -10,6 +10,8 @@ using HBYS.Domain.Entities.Emergency;
 using HBYS.Domain.Entities.Pharmacy;
 using HBYS.Domain.Entities.Inventory;
 using HBYS.Domain.Entities.Procurement;
+using HBYS.Domain.Entities.Laboratory;
+using HBYS.Domain.Entities.Radiology;
 using Microsoft.EntityFrameworkCore;
 
 namespace HBYS.Persistence;
@@ -94,6 +96,15 @@ public class HbysDbContext : DbContext
     public DbSet<Requisition> Requisitions => Set<Requisition>();
     public DbSet<RequisitionItem> RequisitionItems => Set<RequisitionItem>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
+
+    // Laboratory Module
+    public DbSet<LabRequest> LabRequests => Set<LabRequest>();
+    public DbSet<LabTest> LabTests => Set<LabTest>();
+    public DbSet<LabResult> LabResults => Set<LabResult>();
+
+    // Radiology Module
+    public DbSet<RadiologyRequest> RadiologyRequests => Set<RadiologyRequest>();
+    public DbSet<RadiologyTest> RadiologyTests => Set<RadiologyTest>();
 
     /// <summary>
     /// Constructor
