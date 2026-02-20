@@ -494,7 +494,7 @@ public class CancelInvoiceRequest
 /// Kim Kullanacak: Faturalama.
 /// Amacı: Durum parametrelerini taşımak.
 /// </summary>
-public class UpdateStatusRequest
+public class InvoiceUpdateStatusRequest
 {
     public InvoiceStatus Status { get; set; }
 }
